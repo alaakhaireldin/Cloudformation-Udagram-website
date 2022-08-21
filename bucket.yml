@@ -1,0 +1,99 @@
+Parameters:
+  MainBucketName:
+    Description: Creating a bucket
+    Type: String
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+Resources:
+  MyMainBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref MainBucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingMainBucket
+        LogFilePrefix: loggin-bucket-project
+
+  EC2IamRole:
+    Type: AWS::IAM::Role
+    Description: Allows EC2 instances to call AWS services on the owner's behalf.
+    Properties:
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+
+  RolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AmazonS3ReadOnlyAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:List*
+            Resource: !Sub "arn:aws:s3:::${MainBucketName}/*"
+      Roles:
+        - Ref: EC2IamRole
+
+  bucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyMainBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowStaticObjectDownload
+            Action: s3:GetObject
+            Effect: Allow
+            Resource: !Join ['', ['arn:aws:s3:::', !Ref 'MyMainBucket', '/*']]
+            Principal:
+              AWS: '*'
+          - Sid: PutObjectAccess
+            Action: s3:PutObject
+            Effect: Allow
+            Resource: !Join ['', ['arn:aws:s3:::', !Ref 'MyMainBucket', '/*']]
+            Principal:
+              AWS: '*'
+
+
+  MyInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        - Ref: EC2IamRole
+  LoggingMainBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: LogDeliveryWrite
+
+Outputs:
+  MyMainBucket:
+    Description: MainBucket Created using this template with EC2.
+    Value: !Ref MyMainBucket
+    Export:
+      Name: !Sub ${EnvironmentName}-MainBucket
+
+  EC2InstanceProfile:
+    Description: Iam role attached to the Mainbucket.
+    Value: !Ref MyInstanceProfile
+    Export:
+      Name: !Sub ${EnvironmentName}-InstanceProfile

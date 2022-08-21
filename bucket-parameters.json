@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "MainBucketName",
+    "ParameterValue": "udacity-bucket-alaa"
+  },
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "UdacityProject"
+  }
+]
