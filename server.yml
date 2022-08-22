@@ -64,7 +64,6 @@ Resources:
           systemctl restart apache2.service
 
       ImageId: ami-0729e439b6769d6ab
-      KeyName: exercise-key
       SecurityGroups:
         - Ref: WebServerSecGroup
       InstanceType: t3.medium
